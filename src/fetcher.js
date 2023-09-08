@@ -1,5 +1,5 @@
 import { updateEstimatedBitrate } from './parser/bitrate';
-import { urlHandler } from './url_handler';
+import { urlHandler } from './urlhandlers/xhr_url_handler';
 import { DEFAULT_TIMEOUT } from './urlhandlers/consts';
 
 /**
@@ -81,7 +81,7 @@ export class Fetcher {
     previousUrl = null,
     wrapperAd = null,
   }) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const timeBeforeGet = Date.now();
 
       // Process url with defined filter
@@ -89,39 +89,38 @@ export class Fetcher {
         url = filter(url);
       });
 
-      emitter('VAST-resolving', {
-        url,
-        previousUrl,
-        wrapperDepth,
-        maxWrapperDepth,
-        timeout: this.fetchingOptions.timeout,
-        wrapperAd,
-      });
+      try {
+        emitter('VAST-resolving', {
+          url,
+          previousUrl,
+          wrapperDepth,
+          maxWrapperDepth: maxWrapperDepth,
+          timeout: this.fetchingOptions.timeout,
+          wrapperAd,
+        });
 
-      this.urlHandler.get(
-        url,
-        this.fetchingOptions,
-        (error, xml, details = {}) => {
-          const deltaTime = Math.round(Date.now() - timeBeforeGet);
-          const info = {
-            url,
-            previousUrl,
-            wrapperDepth,
-            error,
-            duration: deltaTime,
-            ...details,
-          };
+        let data = await this.urlHandler.get(url, this.fetchingOptions);
+        const deltaTime = Math.round(Date.now() - timeBeforeGet);
+        const info = {
+          url,
+          previousUrl,
+          wrapperDepth,
+          error: data.error || null,
+          duration: deltaTime,
+          statusCode: data.statusCode || data.details.statusCode || null,
+          ...data.details,
+        };
+        emitter('VAST-resolved', info);
+        updateEstimatedBitrate(data.details.byteLength, deltaTime);
 
-          emitter('VAST-resolved', info);
-          updateEstimatedBitrate(details.byteLength, deltaTime);
-
-          if (error) {
-            reject(error);
-          } else {
-            resolve(xml);
-          }
+        if (data.error) {
+          reject(data.error);
+        } else {
+          resolve(data.xml);
         }
-      );
+      } catch (error) {
+        console.error(error);
+      }
     });
   }
 }
