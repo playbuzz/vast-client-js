@@ -107,11 +107,11 @@ export class Fetcher {
           wrapperDepth,
           error: data.error || null,
           duration: deltaTime,
-          statusCode: data.statusCode || data.details.statusCode || null,
+          statusCode: data.statusCode || null,
           ...data.details,
         };
         emitter('VAST-resolved', info);
-        updateEstimatedBitrate(data.details.byteLength, deltaTime);
+        updateEstimatedBitrate(data?.details?.byteLength, deltaTime);
 
         if (data.error) {
           reject(data.error);
