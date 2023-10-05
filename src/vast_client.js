@@ -16,11 +16,15 @@ export class VASTClient {
    * @param  {Storage} customStorage - A custom storage to use instead of the default one.
    * @constructor
    */
-  constructor(cappingFreeLunch, cappingMinimumTimeInterval, customStorage) {
-    this.cappingFreeLunch = cappingFreeLunch || 0;
-    this.cappingMinimumTimeInterval = cappingMinimumTimeInterval || 0;
+  constructor(
+    cappingFreeLunch = 0,
+    cappingMinimumTimeInterval = 0,
+    customStorage = new Storage()
+  ) {
+    this.cappingFreeLunch = cappingFreeLunch;
+    this.cappingMinimumTimeInterval = cappingMinimumTimeInterval;
     this.vastParser = new VASTParser();
-    this.storage = customStorage || new Storage();
+    this.storage = customStorage;
     this.fetcher = new Fetcher();
     this.vastParser.fetchingCallback = this.fetcher.fetchVAST.bind(
       this.fetcher
